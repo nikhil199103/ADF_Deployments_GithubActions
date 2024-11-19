@@ -35,5 +35,5 @@ jobs:
       run: |
         az deployment group create \
           --resource-group my-resource-group \
-          --template-file arm-template.json \
-          --parameters parameters.json
+          --template-file adf-github-actions/ARMTemplateForFactory.json \
+          --parameters adf-github-actions/ARMTemplateParametersForFactory.json
