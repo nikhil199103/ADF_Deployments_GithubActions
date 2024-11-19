@@ -34,6 +34,6 @@ jobs:
     - name: Deploy ARM Templates
       run: |
         az deployment group create \
-          --resource-group my-resource-group \
+          --resource-group test \
           --template-file adf-github-actions/ARMTemplateForFactory.json \
           --parameters adf-github-actions/ARMTemplateParametersForFactory.json
