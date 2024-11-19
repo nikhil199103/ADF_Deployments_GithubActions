@@ -1,0 +1,29 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Log in to Azure using creds
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # Step 3: Example Deployment
+    - name: Deploy ARM Template
+      run: |
+        az deployment group create \
+          --resource-group my-resource-group \
+          --template-file arm-template.json \
+          --parameters parameters.json
