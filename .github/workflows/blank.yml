@@ -3,7 +3,7 @@ name: Deploy to Azure
 on:
   push:
     branches:
-      - main
+      - main  # Trigger on push to the main branch
 
 jobs:
   deploy:
@@ -14,7 +14,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Step 2: Log in to Azure
+    # Step 2: Login to Azure using the Service Principal
     - name: Azure Login
       uses: azure/login@v1
       with:
@@ -22,3 +22,13 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    # Step 3: Deploy resources using Azure CLI
+    - name: Deploy ARM Templates
+      run: |
+        az deployment group create \
+          --resource-group my-resource-group \
+          --template-file arm-template.json \
+          --parameters parameters.json
+
+    # Additional steps (e.g., managing ADF, AKS, etc.) can be added here
