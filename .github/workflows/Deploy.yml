@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  resourceGroupName: 'my-resource-group'
-  dataFactoryName: 'my-data-factory'  # Set Data Factory name as an environment variable
+  resourceGroupName: 'test'
+  dataFactoryName: 'adf-github-actions'  # Set Data Factory name as an environment variable
   armTemplateFile: 'ARMTemplateForFactory.json'
   armTemplateParametersFile: 'ARMTemplateParametersForFactory.json'
   additionalParameters: ''
