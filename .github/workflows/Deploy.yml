@@ -3,57 +3,56 @@ name: Deploy Data Factory with Pre/Post Deployment
 on:
   push:
     branches:
-      - main  # Trigger on changes to the main branch
+      - main
+
+env:
+  resourceGroupName: 'my-resource-group'
+  dataFactoryName: 'my-data-factory'
+  armTemplateFile: 'ARMTemplateForFactory.json'
+  armTemplateParametersFile: 'ARMTemplateParametersForFactory.json'
+  additionalParameters: ''
+  skipAzModuleInstallation: 'false'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the adf_publish branch
     - name: Checkout ADF Publish Branch
       uses: actions/checkout@v3
       with:
-        ref: adf_publish  # Explicitly check out the adf_publish branch
+        ref: adf_publish
 
-    # Step 2: Debug to list files
-    - name: List files in the workspace
-      run: ls -R
-
-    # Step 3: Install Az PowerShell Module (if not skipped)
     - name: Install Az PowerShell Module
       run: |
-        if('${{ inputs.skipAzModuleInstallation }}' -ne 'true') { 
+        if('${{ env.skipAzModuleInstallation }}' -ne 'true') { 
           Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force 
         }
       shell: pwsh
 
-    # Step 4: Run Pre-deployment script
     - name: Run Pre-deployment script
       run: |
         ./adf-github-actions/PrePostDeploymentScript.ps1 `
-          -armTemplate "adf-github-actions/${{ inputs.armTemplateFile }}" `
-          -ResourceGroupName "${{ inputs.resourceGroupName }}" `
-          -DataFactoryName "${{ inputs.dataFactoryName }}" `
+          -armTemplate "adf-github-actions/${{ env.armTemplateFile }}" `
+          -ResourceGroupName "${{ env.resourceGroupName }}" `
+          -DataFactoryName "${{ env.dataFactoryName }}" `
           -predeployment $true `
           -deleteDeployment $false
       shell: pwsh
 
-    # Step 5: Run ARM Template Deployment
     - name: Deploy ARM Templates
       uses: azure/arm-deploy@v1
       with:
-        resourceGroupName: ${{ inputs.resourceGroupName }}
-        template: adf-github-actions/${{ inputs.armTemplateFile }}
-        parameters: adf-github-actions/${{ inputs.armTemplateParametersFile }} factoryName=${{ inputs.dataFactoryName }} ${{ inputs.additionalParameters }}
+        resourceGroupName: ${{ env.resourceGroupName }}
+        template: adf-github-actions/${{ env.armTemplateFile }}
+        parameters: adf-github-actions/${{ env.armTemplateParametersFile }} factoryName=${{ env.dataFactoryName }} ${{ env.additionalParameters }}
 
-    # Step 6: Run Post-deployment script
     - name: Run Post-deployment script
       run: |
         ./adf-github-actions/PrePostDeploymentScript.ps1 `
-          -armTemplate "adf-github-actions/${{ inputs.armTemplateFile }}" `
-          -ResourceGroupName "${{ inputs.resourceGroupName }}" `
-          -DataFactoryName "${{ inputs.dataFactoryName }}" `
+          -armTemplate "adf-github-actions/${{ env.armTemplateFile }}" `
+          -ResourceGroupName "${{ env.resourceGroupName }}" `
+          -DataFactoryName "${{ env.dataFactoryName }}" `
           -predeployment $false `
           -deleteDeployment $true
       shell: pwsh
