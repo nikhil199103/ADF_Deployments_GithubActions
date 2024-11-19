@@ -7,7 +7,7 @@ on:
 
 env:
   resourceGroupName: 'test'
-  dataFactoryName: 'adf-github-actions'  # Set Data Factory name as an environment variable
+  dataFactoryName: 'adf-github-actions'
   armTemplateFile: 'ARMTemplateForFactory.json'
   armTemplateParametersFile: 'ARMTemplateParametersForFactory.json'
   additionalParameters: ''
