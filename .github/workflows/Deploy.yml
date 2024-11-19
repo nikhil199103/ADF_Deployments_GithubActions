@@ -20,8 +20,18 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # Step 3: Example Deployment
-    - name: Deploy ARM Template
+    # Step 3: Checkout the adf_publish branch
+    - name: Checkout ADF Publish Branch
+      uses: actions/checkout@v3
+      with:
+        ref: adf_publish  # Explicitly check out the adf_publish branch
+
+    # Step 2: Debug to list files
+    - name: List files in the workspace
+      run: ls -R
+
+    # Step 3: Deploy ARM Templates
+    - name: Deploy ARM Templates
       run: |
         az deployment group create \
           --resource-group my-resource-group \
