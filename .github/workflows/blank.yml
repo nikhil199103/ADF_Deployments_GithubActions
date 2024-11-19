@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Check out the repository
+    # Step 1: Checkout the repository
     - name: Checkout code
       uses: actions/checkout@v3
 
@@ -18,6 +18,6 @@ jobs:
     - name: Azure Login
       uses: azure/login@v1
       with:
-        client-id: 952fad4a-a77f-449a-9e1a-677324992633   # Replace with your App's Client ID
-        tenant-id: 42f91328-1147-483c-99ed-e33d376b3ce2>       # Replace with your Tenant ID
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}  # Replace with your GitHub secret
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}  # Replace with your GitHub secret
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  # Ensure this is provided
