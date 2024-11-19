@@ -20,4 +20,4 @@ jobs:
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}  # Replace with your GitHub secret
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}  # Replace with your GitHub secret
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  # Ensure this is provided
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}  # Ensure this is provided 
