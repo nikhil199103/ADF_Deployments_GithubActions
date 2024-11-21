@@ -76,6 +76,6 @@ jobs:
           -armTemplate 'adf-github-actions/${{ env.armTemplateFile }}' `
           -ResourceGroupName '${{ env.resourceGroupName }}' `
           -DataFactoryName '${{ env.dataFactoryName }}' `
-          -predeployment $true `
-          -deleteDeployment $false }"
+          -predeployment $True `
+          -deleteDeployment $False }"
       shell: pwsh 
