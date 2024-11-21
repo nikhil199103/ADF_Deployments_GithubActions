@@ -1,10 +1,10 @@
 param
 (
-    [parameter(Mandatory = $false)] [String] $armTemplate,
-    [parameter(Mandatory = $false)] [String] $ResourceGroupName,
-    [parameter(Mandatory = $false)] [String] $DataFactoryName,
-    [parameter(Mandatory = $false)] [Bool] $predeployment=$true,
-    [parameter(Mandatory = $false)] [Bool] $deleteDeployment=$false
+    [parameter(Mandatory = $False)] [String] $armTemplate,
+    [parameter(Mandatory = $False)] [String] $ResourceGroupName,
+    [parameter(Mandatory = $False)] [String] $DataFactoryName,
+    [parameter(Mandatory = $False)] [Bool] $predeployment=$True,
+    [parameter(Mandatory = $False)] [Bool] $deleteDeployment=$False
 )
 
 function getPipelineDependencies {
@@ -37,10 +37,10 @@ function pipelineSortUtil {
     [Hashtable] $pipelineNameResourceDict,
     [Hashtable] $visited,
     [System.Collections.Stack] $sortedList)
-    if ($visited[$pipeline.Name] -eq $true) {
+    if ($visited[$pipeline.Name] -eq $True) {
         return;
     }
-    $visited[$pipeline.Name] = $true;
+    $visited[$pipeline.Name] = $True;
     $pipeline.Activities | ForEach-Object{ getPipelineDependencies -activity $_ -pipelineNameResourceDict $pipelineNameResourceDict}  | ForEach-Object{
         pipelineSortUtil -pipeline $pipelineNameResourceDict[$_] -pipelineNameResourceDict $pipelineNameResourceDict -visited $visited -sortedList $sortedList
     }
@@ -72,10 +72,10 @@ function triggerSortUtil {
     [Hashtable] $triggerNameResourceDict,
     [Hashtable] $visited,
     [System.Collections.Stack] $sortedList)
-    if ($visited[$trigger.Name] -eq $true) {
+    if ($visited[$trigger.Name] -eq $True) {
         return;
     }
-    $visited[$trigger.Name] = $true;
+    $visited[$trigger.Name] = $True;
     if ($trigger.Properties.DependsOn) {
         $trigger.Properties.DependsOn | Where-Object {$_ -and $_.ReferenceTrigger} | ForEach-Object{
             triggerSortUtil -trigger $triggerNameResourceDict[$_.ReferenceTrigger.ReferenceName] -triggerNameResourceDict $triggerNameResourceDict -visited $visited -sortedList $sortedList
@@ -174,7 +174,7 @@ $triggersToStart = $triggersInTemplate | Where-Object { $_.properties.runtimeSta
 #     }
 # }
 
-if ($predeployment -eq $true) {
+if ($predeployment -eq $True) {
     #Stop all triggers
     Write-Host "Stopping deployed triggers`n"
     $triggersToStop | ForEach-Object {
@@ -267,7 +267,7 @@ else
         Remove-AzDataFactoryV2IntegrationRuntime -Name $_.Name -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Force 
     }
 
-    if ($deleteDeployment -eq $true) {
+    if ($deleteDeployment -eq $True) {
         Write-Host "Deleting ARM deployment ... under resource group: " $ResourceGroupName
         $deployments = Get-AzResourceGroupDeployment -ResourceGroupName $ResourceGroupName
         $deploymentsToConsider = $deployments | Where { $_.DeploymentName -like "ArmTemplate_master*" -or $_.DeploymentName -like "ArmTemplateForFactory*" } | Sort-Object -Property Timestamp -Descending
