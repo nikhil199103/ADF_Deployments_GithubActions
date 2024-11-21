@@ -1,0 +1,78 @@
+name: Deploy Azure Data Factory
+
+on:
+  push:
+    branches:
+      - main
+      - adf_publish
+
+env:
+  resourceGroupName: ZHIDF
+  factoryName: zhihubdf
+  armTemplateFile: HubDataFactorymaster/dxhubdf/linkedTemplates/ArmTemplate_master.json
+  armTemplateParametersFile: HubDataFactorymaster/dxhubdf/linkedTemplates/ArmTemplateParameters_master.json
+  storageAccountName: stgpdadfarmtemplate
+  blobContainerName: armtemplates
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      # List repository files for debugging
+      - name: List Repository Files
+        run: ls -R
+
+      # Install Azure CLI
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az --version
+
+      # Login to Azure
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Upload ARM templates to Azure Blob Storage
+      - name: Upload ARM Templates
+        run: |
+          az storage blob upload-batch \
+            --account-name ${{ env.storageAccountName }} \
+            --source $GITHUB_WORKSPACE/HubDataFactorymaster/dxhubdf/linkedTemplates \
+            --destination ${{ env.blobContainerName }}
+
+      # Deploy ARM Templates
+      - name: Deploy ARM Templates
+        uses: azure/arm-deploy@v1
+        with:
+          scope: resourceGroup
+          resourceGroupName: ${{ env.resourceGroupName }}
+          template: $GITHUB_WORKSPACE/${{ env.armTemplateFile }}
+          parameters: $GITHUB_WORKSPACE/${{ env.armTemplateParametersFile }}
+          deploymentMode: Incremental
+
+      # Run Pre-deployment Scripts
+      - name: Run Pre-deployment Script
+        run: |
+          pwsh ./_Dev_ADF/psscripts/PrePostADFDeploymentScript.ps1 `
+            -armTemplate "${{ env.armTemplateFile }}" `
+            -ResourceGroupName "${{ env.resourceGroupName }}" `
+            -DataFactoryName "${{ env.factoryName }}" `
+            -predeployment $true `
+            -deleteDeployment $false
+        shell: pwsh
+
+      # Enable ADF Triggers
+      - name: Enable ADF Triggers
+        run: |
+          pwsh ./_Dev_ADF/psscripts/EnableADFTriggers.ps1 `
+            -ResourceGroupName "${{ env.resourceGroupName }}" `
+            -DataFactoryName "${{ env.factoryName }}"
+        shell: pwsh
