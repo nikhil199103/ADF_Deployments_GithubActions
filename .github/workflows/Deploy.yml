@@ -78,4 +78,4 @@ jobs:
           -DataFactoryName '${{ env.dataFactoryName }}' `
           -predeployment $true `
           -deleteDeployment $false }"
-      shell: pwsh
+      shell: pwsh 
