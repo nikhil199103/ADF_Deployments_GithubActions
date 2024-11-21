@@ -57,8 +57,8 @@ jobs:
           -armTemplate "${{ env.armTemplateFile }}" `
           -ResourceGroupName "${{ env.resourceGroupName }}" `
           -DataFactoryName "${{ env.factoryName }}" `
-          -predeployment $true `
-          -deleteDeployment $false
+          -predeployment $True `
+          -deleteDeployment $False
       shell: pwsh
 
     # Step 8: Deploy ARM Templates
