@@ -54,9 +54,9 @@ jobs:
     - name: Run Pre-deployment Script
       run: |
         pwsh /tmp/PrePostDeploymentScript.ps1 `
-          -armTemplate "${{ env.armTemplateFile }}" `
-          -ResourceGroupName "${{ env.resourceGroupName }}" `
-          -DataFactoryName "${{ env.factoryName }}" `
+          -armTemplate "adf-github-actions/ARMTemplateForFactory.json" `
+          -ResourceGroupName "adf-github-actions" `
+          -DataFactoryName "test" `
           -predeployment $True `
           -deleteDeployment $False
       shell: pwsh
