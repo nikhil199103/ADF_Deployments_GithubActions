@@ -2,8 +2,8 @@ param (
     [string]$armTemplate,
     [string]$ResourceGroupName,
     [string]$DataFactoryName,
-    [bool]$predeployment, # Ensure the type is Boolean
-    [bool]$deleteDeployment
+    [string]$predeployment, # Ensure the type is Boolean
+    [string]$deleteDeployment
 )
 
 function getPipelineDependencies {
