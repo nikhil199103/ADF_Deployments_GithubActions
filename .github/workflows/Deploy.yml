@@ -51,12 +51,12 @@ jobs:
       shell: pwsh
 
     # Step 7: Run Pre-deployment script
-    - name: Run Pre-deployment script
+    - name: Run Pre-deployment Script
       run: |
-        pwsh /tmp/PrePostDeploymentScript.ps1 `
-          -armTemplate "adf-github-actions/${{ env.armTemplateFile }}" `
+        pwsh ./_Dev_ADF/psscripts/PrePostADFDeploymentScript.ps1 `
+          -armTemplate "${{ env.armTemplateFile }}" `
           -ResourceGroupName "${{ env.resourceGroupName }}" `
-          -DataFactoryName "${{ env.dataFactoryName }}" `
+          -DataFactoryName "${{ env.factoryName }}" `
           -predeployment $true `
           -deleteDeployment $false
       shell: pwsh

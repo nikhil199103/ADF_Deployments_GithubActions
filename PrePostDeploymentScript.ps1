@@ -1,10 +1,9 @@
-param
-(
-    [parameter(Mandatory = $False)] [String] $armTemplate,
-    [parameter(Mandatory = $False)] [String] $ResourceGroupName,
-    [parameter(Mandatory = $False)] [String] $DataFactoryName,
-    [parameter(Mandatory = $False)] [Bool] $predeployment=$True,
-    [parameter(Mandatory = $False)] [Bool] $deleteDeployment=$False
+param (
+    [string]$armTemplate,
+    [string]$ResourceGroupName,
+    [string]$DataFactoryName,
+    [bool]$predeployment, # Ensure the type is Boolean
+    [bool]$deleteDeployment
 )
 
 function getPipelineDependencies {
