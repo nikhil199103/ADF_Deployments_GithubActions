@@ -163,11 +163,22 @@ $triggersToStart = $triggersInTemplate | Where-Object { $_.properties.runtimeSta
     }
 }
 
+#If triggers are stopped in armtemplate
+#then checking deploying environment's trigger current state
+# Write-Host "Getting current env triggers"
+# $ADF_Triggers = Get-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName
+# $activeNowTriggerNames = $ADF_Triggers | Where-Object { $_.properties.runtimeState -eq "Started" -and ($_.properties.pipelines.Count -gt 0 -or $_.properties.pipeline.pipelineReference -ne $null)} | ForEach-Object { 
+#     New-Object PSObject -Property @{
+#         Name = $_.name
+#         TriggerType = $_.Properties.ToString().Substring(46, $_.Properties.ToString().Length-46)
+#     }
+# }
+
 if ($predeployment -eq $true) {
     #Stop all triggers
     Write-Host "Stopping deployed triggers`n"
     $triggersToStop | ForEach-Object {
-        if ($_.TriggerType -eq "BlobEventsTrigger" -or $_.TriggerType -eq "CustomEventsTrigger") {
+        if ($_.TriggerType -eq "BlobEventsTrigger") {
             Write-Host "Unsubscribing" $_.Name "from events"
             $status = Remove-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
             while ($status.Status -ne "Disabled"){
@@ -179,7 +190,8 @@ if ($predeployment -eq $true) {
         Stop-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
     }
 }
-else {
+else 
+{
     #Deleted resources
     #pipelines
     Write-Host "Getting pipelines"
@@ -217,7 +229,7 @@ else {
         Write-Host "Deleting trigger "  $_.Name
         $trig = Get-AzDataFactoryV2Trigger -name $_.Name -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName
         if ($trig.RuntimeState -eq "Started") {
-            if ($_.TriggerType -eq "BlobEventsTrigger" -or $_.TriggerType -eq "CustomEventsTrigger") {
+            if ($_.TriggerType -eq "BlobEventsTrigger") {
                 Write-Host "Unsubscribing trigger" $_.Name "from events"
                 $status = Remove-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
                 while ($status.Status -ne "Disabled"){
@@ -276,7 +288,7 @@ else {
     #Start active triggers - after cleanup efforts
     Write-Host "Starting active triggers"
     $triggersToStart | ForEach-Object { 
-        if ($_.TriggerType -eq "BlobEventsTrigger" -or $_.TriggerType -eq "CustomEventsTrigger") {
+        if ($_.TriggerType -eq "BlobEventsTrigger") {
             Write-Host "Subscribing" $_.Name "to events"
             $status = Add-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
             while ($status.Status -ne "Enabled"){
@@ -287,4 +299,22 @@ else {
         Write-Host "Starting trigger" $_.Name
         Start-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
     }
+
+    #Start active triggers - based on current deploying env trigger state
+    # If($activeNowTriggerNames -ne $null)
+    # {
+    #     Write-Host "Starting current environment active triggers"
+    #     $activeNowTriggerNames | ForEach-Object { 
+    #         if ($_.TriggerType -eq "BlobEventsTrigger") {
+    #             Write-Host "Subscribing" $_.Name "to events"
+    #             $status = Add-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
+    #             while ($status.Status -ne "Enabled"){
+    #                 Start-Sleep -s 15
+    #                 $status = Get-AzDataFactoryV2TriggerSubscriptionStatus -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
+    #             }
+    #         }
+    #         Write-Host "Starting trigger" $_.Name
+    #         Start-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
+    #     }
+    # }
 }
