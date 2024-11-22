@@ -39,6 +39,7 @@ jobs:
           # Copy the script to a temp directory
           mkdir -p temp
           git show origin/main:PrePostDeploymentScript.ps1 > temp/PrePostDeploymentScript.ps1
+          git show origin/main:GetADFTriggerState.ps1 > temp/GetADFTriggerState.ps1
 
           # Switch back to adf_publish branch
           git checkout adf_publish
@@ -69,13 +70,19 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           enable-AzPSSession: true
 
-      # Step 6: Run Pre-deployment script
+      # Step 6: Get list of Triggers
+      - name: List ADF Triggers
+        run: |
+            echo "Fetching triggers for Data Factory: adf-github-actions-test"
+            pwsh -command "./temp/GetADFTriggerState.ps1 -ResourceGroupName test -DataFactoryName adf-github-actions-test"
+        shell: bash    
+      # Step 7: Run Pre-deployment script
       - name: Run Pre-deployment script
         run: |
           pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./adf-github-actions/ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
         shell: pwsh
 
-      # Step 7: Deploy ADF ARM Templates
+      # Step 8: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
@@ -84,7 +91,7 @@ jobs:
           parameters: |
             factoryName=${{ vars.ADF_FACTORYNAME }}
 
-      # Step 8: Run Post-deployment script
+      # Step 9: Run Post-deployment script
       - name: Run Post-deployment script
         run: |
           pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./adf-github-actions/ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
