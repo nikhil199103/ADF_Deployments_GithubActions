@@ -90,12 +90,15 @@ jobs:
       - name: Generate SAS Token
         id: generate_sas
         run: |
-          # Run the StgSASToken.ps1 script to generate the SAS token
-          $sasToken = pwsh -command "./temp/StgSASToken.ps1 -ResourceGroupName $env:RESOURCE_GROUP_NAME -StgAccName $env:STG_ACCOUNT_NAME"
+          $sasDetails = pwsh -command "./temp/StgSASToken.ps1 -ResourceGroupName $env:RESOURCE_GROUP_NAME -StgAccName $env:STG_ACCOUNT_NAME"
+          $sasToken = $sasDetails -match "se=.*" | Out-String
+          $sasToken = $sasToken.Trim()
+          $templateBaseUrl = "https://${{ env.STG_ACCOUNT_NAME }}.blob.core.windows.net/${{ env.CONTAINER_NAME }}"
+
 
           # Extract the SAS token from the script's output
           echo "SAS_TOKEN=$sasToken" >> $GITHUB_ENV
-          echo "TEMPLATE_BASE_URL=https://${{ env.STG_ACCOUNT_NAME }}.blob.core.windows.net/${{ env.CONTAINER_NAME }}" >> $GITHUB_ENV
+          echo "TEMPLATE_BASE_URL=$templateBaseUrl" >> $GITHUB_ENV
         shell: pwsh
 
       # Step 9: Run Pre-deployment script
