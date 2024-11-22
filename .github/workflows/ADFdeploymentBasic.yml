@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        stage: ['test', 'prd']
+        stage: ['test']
       fail-fast: true
       max-parallel: 1
     environment:
@@ -27,14 +27,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-            fetch-depth: 0
-      - name: Fetch and List Branches
-        run: |
-            git fetch --all
-            git branch -a      
-      - name: Checkout adf_branch
-        run: |
-            git checkout adf_branch
+            ref: adf_branch
 
       # Install Az PowerShell module conditionally
       - name: Install Az PowerShell module
