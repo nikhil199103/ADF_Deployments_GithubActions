@@ -23,11 +23,12 @@ jobs:
       name: ${{ matrix.stage }}
 
     steps:
-      # Checkout the repository
+      # Checkout the repository and target branch
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-            ref: adf_branch
+          fetch-depth: 0 # Fetch all history for accurate branching
+          ref: adf_branch # Ensure the adf_branch is checked out
 
       # Install Az PowerShell module conditionally
       - name: Install Az PowerShell module
@@ -42,34 +43,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           enable-AzPSSession: true
+
       # Debugging step to list files
       - name: Debug Directory Structure
         run: |
           echo "Current directory:"
           pwd
           echo "Listing files:"
-          ls -R    
-
-      # Run Pre-deployment script
-      - name: Run Pre-deployment script
-        run: |
-          pwsh -command "./PrePostDeploymentScript.ps1 -armTemplate ${{ vars.ARM_TEMPLATE_FILE }} -ResourceGroupName ${{ vars.AZURE_RG }} -DataFactoryName ${{ vars.ADF_FACTORYNAME }} -predeployment $true -deleteDeployment $false"
-        shell: pwsh
-
-      # Deploy ADF ARM Templates
-      - name: Deploy ADF ARM Templates
-        uses: Azure/arm-deploy@v1
-        with:
-          resourceGroupName: ${{ vars.AZURE_RG }}
-          template: ${{ vars.ARM_TEMPLATE_FILE }}
-          parameters: |
-            factoryName=${{ vars.ADF_FACTORYNAME }}
-            ADLS_properties_typeProperties_url=${{ vars.ADF_ADLS_PROPERTIES_TYPEPROPERTIES_URL }}
-            AzureBlob_properties_typeProperties_serviceEndpoint=${{ vars.ADF_AZUREBLOB_PROPERTIES_TYPEPROPERTIES_SERVICEENDPOINT }}
-            AzureKeyVault_properties_typeProperties_baseUrl=${{ vars.ADF_AZUREKEYVAULT_PROPERTIES_TYPEPROPERTIES_BASEURL }}
-
-      # Run Post-deployment script
-      - name: Run Post-deployment script
-        run: |
-          pwsh -command "./PrePostDeploymentScript.ps1 -armTemplate ${{ vars.ARM_TEMPLATE_FILE }} -ResourceGroupName ${{ vars.AZURE_RG }} -DataFactoryName ${{ vars.ADF_FACTORYNAME }} -predeployment $false -deleteDeployment $true"
-        shell: pwsh
+          ls -R
