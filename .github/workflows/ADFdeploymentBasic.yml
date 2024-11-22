@@ -32,28 +32,21 @@ jobs:
           echo "CONTAINER_NAME=templates" >> $GITHUB_ENV
           echo "FILE_PATH=./adf-github-actions/linkedTemplates/" >> $GITHUB_ENV
 
-      # Step 2: Checkout the adf_publish branch
+      # Step 2: Checkout Target Branch (adf_publish)
       - name: Checkout Target Branch (adf_publish)
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: adf_publish
 
-      # Step 3: Fetch scripts from main branch
+      # Step 3: Fetch Scripts from Main Branch
       - name: Fetch Scripts from Main Branch
         run: |
           git fetch origin main
-
-          # Copy scripts to temp directory
           mkdir -p temp
           git show origin/main:PrePostDeploymentScript.ps1 > temp/PrePostDeploymentScript.ps1
-          git show origin/main:GetADFTriggerState.ps1 > temp/GetADFTriggerState.ps1
           git show origin/main:StgSASToken.ps1 > temp/StgSASToken.ps1
-
-          # Switch back to adf_publish branch
           git checkout adf_publish
-
-          # Verify script location
           ls -l temp
 
       # Step 4: Debug Directory Structure
@@ -64,8 +57,8 @@ jobs:
           echo "Listing files:"
           ls -R
 
-      # Step 5: Install Az PowerShell module conditionally
-      - name: Install Az PowerShell module
+      # Step 5: Install Az PowerShell Module Conditionally
+      - name: Install Az PowerShell Module
         if: inputs.skipAzModuleInstallation != 'true'
         run: |
           Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
@@ -81,34 +74,37 @@ jobs:
       # Step 7: Upload Linked Templates to Azure Storage
       - name: Upload Linked Templates to Azure Storage
         run: |
+          echo "Uploading ARM templates to Azure Storage"
           az storage container create --name $CONTAINER_NAME --account-name $STG_ACCOUNT_NAME --auth-mode login
           for file in $FILE_PATH*.json; do
             az storage blob upload --account-name $STG_ACCOUNT_NAME --container-name $CONTAINER_NAME --file "$file" --name "$(basename $file)" --overwrite
           done
 
-      # Step 8: Generate SAS Token with StgSASToken.ps1
+      # Step 8: Generate SAS Token
       - name: Generate SAS Token
         id: generate_sas
         run: |
+          echo "Generating SAS Token"
           $sasDetails = pwsh -command "./temp/StgSASToken.ps1 -ResourceGroupName $env:RESOURCE_GROUP_NAME -StgAccName $env:STG_ACCOUNT_NAME"
           $sasToken = $sasDetails -match "se=.*" | Out-String
           $sasToken = $sasToken.Trim()
           $templateBaseUrl = "https://${{ env.STG_ACCOUNT_NAME }}.blob.core.windows.net/${{ env.CONTAINER_NAME }}"
-
-
-          # Extract the SAS token from the script's output
           echo "SAS_TOKEN=$sasToken" >> $GITHUB_ENV
           echo "TEMPLATE_BASE_URL=$templateBaseUrl" >> $GITHUB_ENV
-        shell: pwsh
 
-      # Step 9: Run Pre-deployment script
-      - name: Run Pre-deployment script
+      # Step 9: Debug Environment Variables
+      - name: Debug Environment Variables
+        run: |
+          echo "TEMPLATE_BASE_URL=${{ env.TEMPLATE_BASE_URL }}"
+          echo "SAS_TOKEN=${{ env.SAS_TOKEN }}"
+
+      # Step 10: Run Pre-deployment Script
+      - name: Run Pre-deployment Script
         run: |
           pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}' -ResourceGroupName ${{ env.RESOURCE_GROUP_NAME }} -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
-
         shell: pwsh
 
-      # Step 10: Deploy ADF ARM Templates
+      # Step 11: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
@@ -120,8 +116,8 @@ jobs:
             linkedTemplateSasToken=${{ env.SAS_TOKEN }}
           deploymentMode: Incremental
 
-      # Step 11: Run Post-deployment script
-      - name: Run Post-deployment script
+      # Step 12: Run Post-deployment Script
+      - name: Run Post-deployment Script
         run: |
           pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}' -ResourceGroupName ${{ env.RESOURCE_GROUP_NAME }} -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
         shell: pwsh
