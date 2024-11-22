@@ -30,13 +30,12 @@ jobs:
           fetch-depth: 0
           ref: adf_publish
 
-      # Step 2: Fetch PrePostDeploymentScript.ps1 from main branch
-      - name: Fetch Script from Main Branch
+      # Step 2: Fetch scripts from main branch
+      - name: Fetch Scripts from Main Branch
         run: |
-          # Fetch the main branch
           git fetch origin main
 
-          # Copy the script to a temp directory
+          # Copy scripts to temp directory
           mkdir -p temp
           git show origin/main:PrePostDeploymentScript.ps1 > temp/PrePostDeploymentScript.ps1
           git show origin/main:GetADFTriggerState.ps1 > temp/GetADFTriggerState.ps1
@@ -45,7 +44,6 @@ jobs:
           git checkout adf_publish
 
           # Verify script location
-          echo "Copied script:"
           ls -l temp
 
       # Step 3: Debug Directory Structure
@@ -70,29 +68,68 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           enable-AzPSSession: true
 
-      # Step 6: Get list of Triggers
+      # Step 6: Upload Linked Templates to Storage Account
+      - name: Upload Linked Templates to Azure Storage
+        run: |
+          echo "Uploading linked templates to Azure Storage Account"
+
+          # Variables
+          STORAGE_ACCOUNT_NAME="yourstorageaccount"
+          CONTAINER_NAME="templates"
+          FILE_PATH="./adf-github-actions/linkedTemplates/"
+          
+          # Ensure container exists
+          az storage container create --name $CONTAINER_NAME --account-name $STORAGE_ACCOUNT_NAME
+          
+          # Upload templates
+          for file in $FILE_PATH*.json; do
+            az storage blob upload --account-name $STORAGE_ACCOUNT_NAME --container-name $CONTAINER_NAME --file "$file" --name "$(basename $file)"
+          done
+          
+          echo "Templates uploaded successfully"
+
+      # Step 7: Generate SAS Token for Templates
+      - name: Generate SAS Token
+        id: sas
+        run: |
+          echo "Generating SAS URL with 1-hour validity"
+
+          # Generate SAS token
+          END_DATE=$(date -u -d "1 hour" '+%Y-%m-%dT%H:%MZ')
+          SAS_TOKEN=$(az storage container generate-sas --account-name $STORAGE_ACCOUNT_NAME --name $CONTAINER_NAME --permissions lr --expiry $END_DATE --output tsv)
+          TEMPLATE_BASE_URL="https://${STORAGE_ACCOUNT_NAME}.blob.core.windows.net/${CONTAINER_NAME}"
+          
+          echo "SAS_TOKEN=$SAS_TOKEN" >> $GITHUB_ENV
+          echo "TEMPLATE_BASE_URL=$TEMPLATE_BASE_URL" >> $GITHUB_ENV
+          
+          echo "Generated SAS Token and Base URL"
+
+      # Step 8: Get list of Triggers
       - name: List ADF Triggers
         run: |
-            echo "Fetching triggers for Data Factory: adf-github-actions-test"
-            pwsh -command "./temp/GetADFTriggerState.ps1 -ResourceGroupName test -DataFactoryName adf-github-actions-test"
-        shell: bash    
-      # Step 7: Run Pre-deployment script
-      - name: Run Pre-deployment script
-        run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./adf-github-actions/ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
+          pwsh -command "./temp/GetADFTriggerState.ps1 -ResourceGroupName test -DataFactoryName adf-github-actions-test"
         shell: pwsh
 
-      # Step 8: Deploy ADF ARM Templates
+      # Step 9: Run Pre-deployment script
+      - name: Run Pre-deployment script with Linked ARM Template
+        run: |
+          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate [concat('${{ env.TEMPLATE_BASE_URL }}', '/preDeploymentTemplate.json', '${{ env.SAS_TOKEN }}')] -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
+        shell: pwsh
+
+      # Step 10: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
-          resourceGroupName: ${{ vars.AZURE_RG }}
-          template: ./adf-github-actions/ARMTemplateForFactory.json
+          resourceGroupName: test
+          template: [concat('${{ env.TEMPLATE_BASE_URL }}', '/mainTemplate.json', '${{ env.SAS_TOKEN }}')]
           parameters: |
-            factoryName=${{ vars.ADF_FACTORYNAME }}
+            factoryName=adf-github-actions-test
+            linkedTemplateBaseUrl=${{ env.TEMPLATE_BASE_URL }}
+            linkedTemplateSasToken=${{ env.SAS_TOKEN }}
+          deploymentMode: Incremental
 
-      # Step 9: Run Post-deployment script
-      - name: Run Post-deployment script
+      # Step 11: Run Post-deployment script
+      - name: Run Post-deployment script with Linked ARM Template
         run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./adf-github-actions/ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
+          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate [concat('${{ env.TEMPLATE_BASE_URL }}', '/postDeploymentTemplate.json', '${{ env.SAS_TOKEN }}')] -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
         shell: pwsh
