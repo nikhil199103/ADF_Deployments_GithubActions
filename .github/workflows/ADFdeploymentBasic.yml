@@ -131,7 +131,7 @@ jobs:
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
-          template: ${{ env.TEMPLATE_BASE_URL }}/mainTemplate.json?${{ env.SAS_TOKEN }}
+          template: ${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}
           parameters: |
             factoryName=adf-github-actions-test
             linkedTemplateBaseUrl=${{ env.TEMPLATE_BASE_URL }}
