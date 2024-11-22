@@ -105,6 +105,7 @@ jobs:
       - name: Run Pre-deployment script
         run: |
           pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}' -ResourceGroupName ${{ env.RESOURCE_GROUP_NAME }} -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
+
         shell: pwsh
 
       # Step 10: Deploy ADF ARM Templates
