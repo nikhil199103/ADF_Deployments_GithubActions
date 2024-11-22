@@ -27,8 +27,8 @@ jobs:
       - name: Set Variables
         run: |
           echo "Setting up required environment variables"
-          echo "RESOURCE_GROUP_NAME=adftempaltedeploy" >> $GITHUB_ENV
-          echo "STG_ACCOUNT_NAME=templates" >> $GITHUB_ENV
+          echo "RESOURCE_GROUP_NAME=test" >> $GITHUB_ENV
+          echo "STG_ACCOUNT_NAME=adftempaltedeploy" >> $GITHUB_ENV
           echo "CONTAINER_NAME=templates" >> $GITHUB_ENV
           echo "FILE_PATH=./adf-github-actions/linkedTemplates/" >> $GITHUB_ENV
 
