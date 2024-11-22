@@ -74,7 +74,7 @@ jobs:
           echo "Uploading linked templates to Azure Storage Account"
 
           # Variables
-          STORAGE_ACCOUNT_NAME="yourstorageaccount"
+          STORAGE_ACCOUNT_NAME="adftempaltedeploy"
           CONTAINER_NAME="templates"
           FILE_PATH="./adf-github-actions/linkedTemplates/"
           
