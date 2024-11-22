@@ -83,9 +83,6 @@ jobs:
           template: ./adf-github-actions/ARMTemplateForFactory.json
           parameters: |
             factoryName=${{ vars.ADF_FACTORYNAME }}
-            ADLS_properties_typeProperties_url=${{ vars.ADF_ADLS_PROPERTIES_TYPEPROPERTIES_URL }}
-            AzureBlob_properties_typeProperties_serviceEndpoint=${{ vars.ADF_AZUREBLOB_PROPERTIES_TYPEPROPERTIES_SERVICEENDPOINT }}
-            AzureKeyVault_properties_typeProperties_baseUrl=${{ vars.ADF_AZUREKEYVAULT_PROPERTIES_TYPEPROPERTIES_BASEURL }}
 
       # Step 8: Run Post-deployment script
       - name: Run Post-deployment script
