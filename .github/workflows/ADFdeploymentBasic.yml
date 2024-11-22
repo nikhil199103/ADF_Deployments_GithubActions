@@ -23,12 +23,20 @@ jobs:
       name: ${{ matrix.stage }}
 
     steps:
-      # Checkout the repository and target branch
+      # Checkout the repository and correct branch
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Fetch all history for accurate branching
-          ref: adf_branch # Ensure the adf_branch is checked out
+          fetch-depth: 0
+          ref: adf_publish # Update to the correct branch name
+
+      # Debugging step to list remote branches
+      - name: List Remote Branches
+        run: |
+          echo "Fetching all branches:"
+          git fetch --all
+          echo "Available branches:"
+          git branch -a
 
       # Install Az PowerShell module conditionally
       - name: Install Az PowerShell module
@@ -44,10 +52,34 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           enable-AzPSSession: true
 
-      # Debugging step to list files
+      # Debugging step to list files in the workspace
       - name: Debug Directory Structure
         run: |
           echo "Current directory:"
           pwd
           echo "Listing files:"
           ls -R
+
+      # Run Pre-deployment script
+      - name: Run Pre-deployment script
+        run: |
+          pwsh -command "./PrePostDeploymentScript.ps1 -armTemplate ./ARMTemplateForFactory.json -ResourceGroupName ${{ vars.AZURE_RG }} -DataFactoryName ${{ vars.ADF_FACTORYNAME }} -predeployment $true -deleteDeployment $false"
+        shell: pwsh
+
+      # Deploy ADF ARM Templates
+      - name: Deploy ADF ARM Templates
+        uses: Azure/arm-deploy@v1
+        with:
+          resourceGroupName: ${{ vars.AZURE_RG }}
+          template: ./Path/To/ARMTemplateForFactory.json
+          parameters: |
+            factoryName=${{ vars.ADF_FACTORYNAME }}
+            ADLS_properties_typeProperties_url=${{ vars.ADF_ADLS_PROPERTIES_TYPEPROPERTIES_URL }}
+            AzureBlob_properties_typeProperties_serviceEndpoint=${{ vars.ADF_AZUREBLOB_PROPERTIES_TYPEPROPERTIES_SERVICEENDPOINT }}
+            AzureKeyVault_properties_typeProperties_baseUrl=${{ vars.ADF_AZUREKEYVAULT_PROPERTIES_TYPEPROPERTIES_BASEURL }}
+
+      # Run Post-deployment script
+      - name: Run Post-deployment script
+        run: |
+          pwsh -command "./PrePostDeploymentScript.ps1 -armTemplate ./ARMTemplateForFactory.json -ResourceGroupName ${{ vars.AZURE_RG }} -DataFactoryName ${{ vars.ADF_FACTORYNAME }} -predeployment $false -deleteDeployment $true"
+        shell: pwsh
