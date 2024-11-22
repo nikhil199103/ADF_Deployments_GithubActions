@@ -120,8 +120,8 @@ jobs:
           pwsh -command "./temp/GetADFTriggerState.ps1 -ResourceGroupName test -DataFactoryName adf-github-actions-test"
         shell: pwsh
 
-      # Step 10: Run Pre-deployment script with Linked ARM Template
-      - name: Run Pre-deployment script with Linked ARM Template
+      # Step 10: Run Pre-deployment script with ArmTemplate_master.json
+      - name: Run Pre-deployment script with ArmTemplate_master.json
         run: |
           pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}' -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
         shell: pwsh
@@ -138,8 +138,8 @@ jobs:
             linkedTemplateSasToken=${{ env.SAS_TOKEN }}
           deploymentMode: Incremental
 
-      # Step 12: Run Post-deployment script with Linked ARM Template
-      - name: Run Post-deployment script with Linked ARM Template
+      # Step 12: Run Post-deployment script with ArmTemplate_master.json
+      - name: Run Post-deployment script with ArmTemplate_master.json
         run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json${{ env.SAS_TOKEN }}' -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
+          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}' -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
         shell: pwsh
