@@ -106,8 +106,6 @@ jobs:
           template: ${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}
           parameters: |
             factoryName=adf-github-actions-test
-            linkedTemplateBaseUrl=${{ env.TEMPLATE_BASE_URL }}
-            linkedTemplateSasToken=${{ env.SAS_TOKEN }}
           deploymentMode: Incremental
 
       # Step 11: Run Post-deployment Script
