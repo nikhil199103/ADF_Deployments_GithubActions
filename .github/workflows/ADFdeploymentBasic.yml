@@ -1,0 +1,66 @@
+name: ADF Deployment
+
+on:
+  push:
+    branches:
+      - adf_publish
+  workflow_dispatch:
+    inputs:
+      skipAzModuleInstallation:
+        description: 'Skip the installation of Az PowerShell module'
+        required: false
+        default: 'false'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stage: ['test', 'prd']
+      fail-fast: true
+      max-parallel: 1
+    environment:
+      name: ${{ matrix.stage }}
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Install Az PowerShell module conditionally
+      - name: Install Az PowerShell module
+        if: inputs.skipAzModuleInstallation != 'true'
+        run: |
+          Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
+        shell: pwsh
+
+      # Azure Login
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          enable-AzPSSession: true
+
+      # Run Pre-deployment script
+      - name: Run Pre-deployment script
+        run: |
+          pwsh -command "./PrePostDeploymentScript.ps1 -armTemplate ${{ vars.ARM_TEMPLATE_FILE }} -ResourceGroupName ${{ vars.AZURE_RG }} -DataFactoryName ${{ vars.ADF_FACTORYNAME }} -predeployment $true -deleteDeployment $false"
+        shell: pwsh
+
+      # Deploy ADF ARM Templates
+      - name: Deploy ADF ARM Templates
+        uses: Azure/arm-deploy@v1
+        with:
+          resourceGroupName: ${{ vars.AZURE_RG }}
+          template: ${{ vars.ARM_TEMPLATE_FILE }}
+          parameters: |
+            factoryName=${{ vars.ADF_FACTORYNAME }}
+            ADLS_properties_typeProperties_url=${{ vars.ADF_ADLS_PROPERTIES_TYPEPROPERTIES_URL }}
+            AzureBlob_properties_typeProperties_serviceEndpoint=${{ vars.ADF_AZUREBLOB_PROPERTIES_TYPEPROPERTIES_SERVICEENDPOINT }}
+            AzureKeyVault_properties_typeProperties_baseUrl=${{ vars.ADF_AZUREKEYVAULT_PROPERTIES_TYPEPROPERTIES_BASEURL }}
+
+      # Run Post-deployment script
+      - name: Run Post-deployment script
+        run: |
+          pwsh -command "./PrePostDeploymentScript.ps1 -armTemplate ${{ vars.ARM_TEMPLATE_FILE }} -ResourceGroupName ${{ vars.AZURE_RG }} -DataFactoryName ${{ vars.ADF_FACTORYNAME }} -predeployment $false -deleteDeployment $true"
+        shell: pwsh
