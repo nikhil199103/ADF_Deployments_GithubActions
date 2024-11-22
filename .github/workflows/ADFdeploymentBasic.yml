@@ -23,28 +23,31 @@ jobs:
       name: ${{ matrix.stage }}
 
     steps:
-      # Checkout the adf_publish branch
-      - name: Checkout Target Branch
+      # Step 1: Checkout the adf_publish branch
+      - name: Checkout Target Branch (adf_publish)
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: adf_publish
 
-      # Fetch PrePostDeploymentScript.ps1 from main branch
-      - name: Fetch and Copy Script from Main
+      # Step 2: Fetch PrePostDeploymentScript.ps1 from main branch
+      - name: Fetch Script from Main Branch
         run: |
           # Fetch the main branch
           git fetch origin main
-          
-          # Check out the script to a temporary directory
+
+          # Copy the script to a temp directory
           mkdir -p temp
           git show origin/main:PrePostDeploymentScript.ps1 > temp/PrePostDeploymentScript.ps1
-          
-          # Verify the script is copied
+
+          # Switch back to adf_publish branch
+          git checkout adf_publish
+
+          # Verify script location
           echo "Copied script:"
           ls -l temp
 
-      # Debugging step to list files in the workspace
+      # Step 3: Debug Directory Structure
       - name: Debug Directory Structure
         run: |
           echo "Current directory:"
@@ -52,40 +55,40 @@ jobs:
           echo "Listing files:"
           ls -R
 
-      # Install Az PowerShell module conditionally
+      # Step 4: Install Az PowerShell module conditionally
       - name: Install Az PowerShell module
         if: inputs.skipAzModuleInstallation != 'true'
         run: |
           Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
         shell: pwsh
 
-      # Azure Login
+      # Step 5: Azure Login
       - name: Azure Login
         uses: Azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           enable-AzPSSession: true
 
-      # Run Pre-deployment script
+      # Step 6: Run Pre-deployment script
       - name: Run Pre-deployment script
         run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
+          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./adf-github-actions/ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
         shell: pwsh
 
-      # Deploy ADF ARM Templates
+      # Step 7: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: ${{ vars.AZURE_RG }}
-          template: ./ARMTemplateForFactory.json
+          template: ./adf-github-actions/ARMTemplateForFactory.json
           parameters: |
             factoryName=${{ vars.ADF_FACTORYNAME }}
             ADLS_properties_typeProperties_url=${{ vars.ADF_ADLS_PROPERTIES_TYPEPROPERTIES_URL }}
             AzureBlob_properties_typeProperties_serviceEndpoint=${{ vars.ADF_AZUREBLOB_PROPERTIES_TYPEPROPERTIES_SERVICEENDPOINT }}
             AzureKeyVault_properties_typeProperties_baseUrl=${{ vars.ADF_AZUREKEYVAULT_PROPERTIES_TYPEPROPERTIES_BASEURL }}
 
-      # Run Post-deployment script
+      # Step 8: Run Post-deployment script
       - name: Run Post-deployment script
         run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
+          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate ./adf-github-actions/ARMTemplateForFactory.json -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
         shell: pwsh
