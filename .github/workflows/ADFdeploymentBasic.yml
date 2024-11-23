@@ -89,33 +89,35 @@ jobs:
           echo "containerSasToken=$containerSasToken" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "containerUri=$containerUri" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # Step 7: Debug Environment Variables
-      - name: Debug Environment Variables
-        run: |
-          echo "Container URI: ${{ env.containerUri }}"
-          echo "Container SAS Token: ${{ env.containerSasToken }}"
-
-      # Step 8: Validate Deployment
+      # Step 7: Validate Deployment
       - name: Validate Deployment
         run: |
           az deployment group validate \
             --resource-group test \
             --template-uri "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" \
-            --parameters "{\"factoryName\": {\"value\": \"adf-github-actions-test\"}, \"containerUri\": {\"value\": \"${{ env.containerUri }}\"}, \"containerSasToken\": {\"value\": \"?${{ env.containerSasToken }}\"}}"
+            --parameters factoryName=adf-github-actions-test containerUri=${{ env.containerUri }} containerSasToken="?${{ env.containerSasToken }}"
 
-      # Step 9: Deploy ADF ARM Templates
+      # Step 8: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
           template: ${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}
-          parameters: |
-            factoryName=adf-github-actions-test
-            containerUri=${{ env.containerUri }}
-            containerSasToken="?${{ env.containerSasToken }}"
+          parameters: >
+            {
+              "factoryName": {
+                "value": "adf-github-actions-test"
+              },
+              "containerUri": {
+                "value": "${{ env.containerUri }}"
+              },
+              "containerSasToken": {
+                "value": "?${{ env.containerSasToken }}"
+              }
+            }
           deploymentMode: Incremental
 
-      # Step 10: Run Post-deployment Script
+      # Step 9: Run Post-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
