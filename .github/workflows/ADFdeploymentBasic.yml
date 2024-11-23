@@ -101,9 +101,7 @@ jobs:
           az deployment group validate \
             --resource-group test \
             --template-uri "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" \
-            --parameters factoryName=adf-github-actions-test \
-                         containerUri=${{ env.containerUri }} \
-                         containerSasToken="?${{ env.containerSasToken }}"
+            --parameters "{\"factoryName\": {\"value\": \"adf-github-actions-test\"}, \"containerUri\": {\"value\": \"${{ env.containerUri }}\"}, \"containerSasToken\": {\"value\": \"?${{ env.containerSasToken }}\"}}"
 
       # Step 9: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
@@ -111,18 +109,10 @@ jobs:
         with:
           resourceGroupName: test
           template: ${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}
-          parameters: >
-            {
-              "factoryName": {
-                "value": "adf-github-actions-test"
-              },
-              "containerUri": {
-                "value": "${{ env.containerUri }}"
-              },
-              "containerSasToken": {
-                "value": "?${{ env.containerSasToken }}"
-              }
-            }
+          parameters: |
+            factoryName=adf-github-actions-test
+            containerUri=${{ env.containerUri }}
+            containerSasToken="?${{ env.containerSasToken }}"
           deploymentMode: Incremental
 
       # Step 10: Run Post-deployment Script
