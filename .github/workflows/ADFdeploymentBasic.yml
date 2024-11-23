@@ -95,7 +95,10 @@ jobs:
           az deployment group validate \
             --resource-group test \
             --template-uri "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" \
-            --parameters factoryName=adf-github-actions-test containerUri=${{ env.containerUri }} containerSasToken="?${{ env.containerSasToken }}"
+            --parameters \
+              factoryName="adf-github-actions-test" \
+              containerUri="${{ env.containerUri }}" \
+              containerSasToken="?${{ env.containerSasToken }}"
 
       # Step 8: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
