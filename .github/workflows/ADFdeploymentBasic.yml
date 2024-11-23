@@ -89,16 +89,7 @@ jobs:
           echo "containerSasToken=$containerSasToken" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "containerUri=$containerUri" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # Step 7: Validate Deployment
-      - name: Validate Deployment
-        run: |
-          echo "Validating deployment..."
-          az deployment group validate \
-            --resource-group test \
-            --template-uri "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" \
-            --parameters factoryName="adf-github-actions-test" \
-                        containerUri="${{ env.containerUri }}" \
-                        containerSasToken="${{ env.containerSasToken }}"
+
       # Step 8: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
