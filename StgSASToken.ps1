@@ -27,4 +27,4 @@ $SASToKen = New-AzStorageAccountSASToken -Context $ctx -Service Blob,File,Table,
 Write-Host $SASToKen
 
 #populating devops variable for further use
-Write-Host "##vso[task.setvariable variable=StorageSASToken;]$SASToKen"
+#Write-Host "##vso[task.setvariable variable=StorageSASToken;]$SASToKen"

@@ -74,8 +74,8 @@ jobs:
           $sasToken = $sasToken.Trim()
           $templateBaseUrl = "https://adftempaltedeploy.blob.core.windows.net/templates"
 
-          echo "SAS_TOKEN=${sasToken}" >> $GITHUB_ENV
-          echo "TEMPLATE_BASE_URL=${templateBaseUrl}" >> $GITHUB_ENV
+          echo "SAS_TOKEN=${sasToken}" 
+          echo "TEMPLATE_BASE_URL=${templateBaseUrl}" 
 
       # Step 7: Debug Environment Variables
       - name: Debug Environment Variables
