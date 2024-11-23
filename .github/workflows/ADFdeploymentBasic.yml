@@ -36,7 +36,6 @@ jobs:
           git fetch origin main
           mkdir -p temp
           git show origin/main:PrePostDeploymentScript.ps1 > temp/PrePostDeploymentScript.ps1
-          git show origin/main:StgSASToken.ps1 > temp/StgSASToken.ps1
           git checkout adf_publish
           ls -l temp
 
@@ -69,13 +68,21 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Generating SAS Token"
-          $sasDetails = ./temp/StgSASToken.ps1 -ResourceGroupName test -StgAccName adftempaltedeploy
-          $sasToken = $sasDetails -match "se=.*" | Out-String
-          $sasToken = $sasToken.Trim()
-          $templateBaseUrl = "https://adftempaltedeploy.blob.core.windows.net/templates"
+          $ctx = (Get-AzStorageAccount -ResourceGroupName test -AccountName adftempaltedeploy).Context
 
-          echo "SAS_TOKEN=${sasToken}" 
-          echo "TEMPLATE_BASE_URL=${templateBaseUrl}" 
+          $StartTime = Get-Date
+          $EndTime = $StartTime.AddHours(1)
+
+          Write-Host "Start Time:- $StartTime"
+          Write-Host "End Time:- $EndTime"
+
+          $SASToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob,File,Table,Queue -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
+          
+          $TemplateBaseUrl = "https://adftempaltedeploy.blob.core.windows.net/templates"
+
+          # Export the SAS Token and Template Base URL to GitHub Environment Variables
+          echo "SAS_TOKEN=$SASToken" >> $GITHUB_ENV
+          echo "TEMPLATE_BASE_URL=$TemplateBaseUrl" >> $GITHUB_ENV
 
       # Step 7: Debug Environment Variables
       - name: Debug Environment Variables
@@ -105,4 +112,4 @@ jobs:
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}' -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true" 
+          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}' -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
