@@ -23,7 +23,7 @@ jobs:
       name: ${{ matrix.stage }}
 
     steps:
-      # Step 1: Checkout Target Branch
+      # Step 1: Checkout Target Branch (adf_publish)
       - name: Checkout Target Branch (adf_publish)
         uses: actions/checkout@v3
         with:
@@ -95,7 +95,7 @@ jobs:
           az deployment group validate \
             --resource-group test \
             --template-uri "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" \
-            --parameters factoryName=adf-github-actions-test containerUri=${{ env.containerUri }} containerSasToken="?${{ env.containerSasToken }}"
+            --parameters '{"factoryName": "adf-github-actions-test", "containerUri": "${{ env.containerUri }}", "containerSasToken": "?${{ env.containerSasToken }}"}'
 
       # Step 8: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
