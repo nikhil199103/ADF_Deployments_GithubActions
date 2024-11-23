@@ -95,27 +95,24 @@ jobs:
           az deployment group validate \
             --resource-group test \
             --template-uri "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" \
-            --parameters \
-              factoryName="adf-github-actions-test" \
-              containerUri="${{ env.containerUri }}" \
-              containerSasToken="?${{ env.containerSasToken }}"
+            --parameters factoryName=adf-github-actions-test containerUri=${{ env.containerUri }} containerSasToken="?${{ env.containerSasToken }}"
 
       # Step 8: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
-          template: ${ env.containerUri }/ArmTemplate_master.json?${ env.containerSasToken }
-          parameters: >
+          template: ${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}
+          parameters: |
             {
               "factoryName": {
                 "value": "adf-github-actions-test"
               },
               "containerUri": {
-                "value": "${ env.containerUri }"
+                "value": "${{ env.containerUri }}"
               },
               "containerSasToken": {
-                "value": "?${ env.containerSasToken }"
+                "value": "?${{ env.containerSasToken }}"
               }
             }
           deploymentMode: Incremental
