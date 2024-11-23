@@ -95,23 +95,17 @@ jobs:
           echo "Container URI: ${{ env.containerUri }}"
           echo "Container SAS Token: ${{ env.containerSasToken }}"
 
-      # Step 8: Run Pre-deployment Script
-      - name: Run Pre-deployment Script
-        shell: pwsh
-        run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}' -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $true -deleteDeployment $false"
-
-      # Step 9: Validate Deployment
+      # Step 8: Validate Deployment
       - name: Validate Deployment
         run: |
           az deployment group validate \
             --resource-group test \
             --template-uri "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" \
             --parameters factoryName=adf-github-actions-test \
-                         linkedTemplateBaseUrl=${{ env.containerUri }} \
-                         linkedTemplateSasToken="?${{ env.containerSasToken }}"
+                         containerUri=${{ env.containerUri }} \
+                         containerSasToken="?${{ env.containerSasToken }}"
 
-      # Step 10: Deploy ADF ARM Templates
+      # Step 9: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
@@ -122,16 +116,16 @@ jobs:
               "factoryName": {
                 "value": "adf-github-actions-test"
               },
-              "linkedTemplateBaseUrl": {
+              "containerUri": {
                 "value": "${{ env.containerUri }}"
               },
-              "linkedTemplateSasToken": {
+              "containerSasToken": {
                 "value": "?${{ env.containerSasToken }}"
               }
             }
           deploymentMode: Incremental
 
-      # Step 11: Run Post-deployment Script
+      # Step 10: Run Post-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
