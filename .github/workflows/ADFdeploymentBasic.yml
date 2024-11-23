@@ -23,7 +23,7 @@ jobs:
       name: ${{ matrix.stage }}
 
     steps:
-      # Step 1: Checkout Target Branch (adf_publish)
+      # Step 1: Checkout Target Branch
       - name: Checkout Target Branch (adf_publish)
         uses: actions/checkout@v3
         with:
@@ -36,6 +36,7 @@ jobs:
           git fetch origin main
           mkdir -p temp
           git show origin/main:PrePostDeploymentScript.ps1 > temp/PrePostDeploymentScript.ps1
+          git show origin/main:StgSASToken.ps1 > temp/StgSASToken.ps1
           git checkout adf_publish
           ls -l temp
 
@@ -67,20 +68,16 @@ jobs:
         id: generate_sas
         shell: pwsh
         run: |
-          Write-Host "Generating SAS Token"
           $ctx = (Get-AzStorageAccount -ResourceGroupName test -AccountName adftempaltedeploy).Context
-
           $StartTime = Get-Date
           $EndTime = $StartTime.AddHours(1)
 
-          Write-Host "Start Time:- $StartTime"
-          Write-Host "End Time:- $EndTime"
+          Write-Host "Start Time: $StartTime"
+          Write-Host "End Time: $EndTime"
 
           $SASToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob,File,Table,Queue -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
-          
           $TemplateBaseUrl = "https://adftempaltedeploy.blob.core.windows.net/templates"
 
-          # Export the SAS Token and Template Base URL to GitHub Environment Variables
           echo "SAS_TOKEN=$SASToken" >> $GITHUB_ENV
           echo "TEMPLATE_BASE_URL=$TemplateBaseUrl" >> $GITHUB_ENV
 
