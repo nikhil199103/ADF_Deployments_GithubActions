@@ -78,8 +78,21 @@ jobs:
           $SASToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob,File,Table,Queue -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
           $TemplateBaseUrl = "https://adftempaltedeploy.blob.core.windows.net/templates"
 
+<<<<<<< HEAD
           echo "SAS_TOKEN=$SASToken" >> $GITHUB_ENV
           echo "TEMPLATE_BASE_URL=$TemplateBaseUrl" >> $GITHUB_ENV
+=======
+          if (-not $SASToken) {
+            Write-Error "Failed to generate SAS Token!"
+            exit 1
+          }
+
+          Write-Host "Generated SAS Token: $SASToken"
+          Write-Host "Template Base URL: $TemplateBaseUrl"
+
+          echo "SAS_TOKEN=$SASToken" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "TEMPLATE_BASE_URL=$TemplateBaseUrl" | Out-File -FilePath $env:GITHUB_ENV -Append
+>>>>>>> 16b796e (update)
 
       # Step 7: Debug Environment Variables
       - name: Debug Environment Variables
@@ -96,7 +109,7 @@ jobs:
       # Step 9: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
-        with:
+        with: 
           resourceGroupName: test
           template: ${{ env.TEMPLATE_BASE_URL }}/ArmTemplate_master.json?${{ env.SAS_TOKEN }}
           parameters: |
