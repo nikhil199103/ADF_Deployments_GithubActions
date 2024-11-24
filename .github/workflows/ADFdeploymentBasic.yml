@@ -87,7 +87,7 @@ jobs:
           Write-Host "Container URI: $containerUri"
 
           echo "containerSasToken=$containerSasToken" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "containerSasToken=$containerSasToken"  | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "containerUri=$containerUri"  | Out-File -FilePath $env:GITHUB_ENV -Append
 
 
       # Step 8: Deploy ADF ARM Templates
@@ -95,7 +95,7 @@ jobs:
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
-          template: ${{env.containerUri}}/ArmTemplate_master.json${{env.containerSasToken}}
+          template: "$containerUri/ArmTemplate_master.json$containerSasToken"
           parameters: |
             {
               "factoryName": {
