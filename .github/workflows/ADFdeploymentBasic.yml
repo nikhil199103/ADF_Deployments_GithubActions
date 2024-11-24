@@ -94,7 +94,7 @@ jobs:
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
-          template: ${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}
+          template: ${{ env.containerUri }}/ArmTemplate_master.json**?**${{ env.containerSasToken }}
           parameters: |
             {
               "factoryName": {
