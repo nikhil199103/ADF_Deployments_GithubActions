@@ -23,7 +23,7 @@ jobs:
       name: ${{ matrix.stage }}
 
     steps:
-      # Step 1: Checkout Target Branch (adf_publish)
+      # Step 1: Checkout Target Branch
       - name: Checkout Target Branch (adf_publish)
         uses: actions/checkout@v3
         with:
@@ -42,7 +42,7 @@ jobs:
 
       # Step 3: Install Az PowerShell Module Conditionally
       - name: Install Az PowerShell Module
-        if: inputs.skipAzModuleInstallation != 'true'
+        if: ${{ inputs.skipAzModuleInstallation != 'true' }}
         run: |
           Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
         shell: pwsh
@@ -60,7 +60,7 @@ jobs:
           echo "Uploading ARM templates to Azure Storage"
           az storage container create --name templates --account-name adftempaltedeploy --auth-mode login
           for file in ./adf-github-actions/linkedTemplates/*.json; do
-            az storage blob upload --account-name adftempaltedeploy --container-name templates --file "$file" --name "$(basename $file)" --overwrite
+            az storage blob upload --account-name adftempaltedeploy --container-name templates --file "$file" --name "$(basename "$file")" --overwrite
           done
 
       # Step 6: Generate SAS Token and Container URI
@@ -75,7 +75,7 @@ jobs:
           Write-Host "Start Time: $StartTime"
           Write-Host "End Time: $EndTime"
 
-          $containerSasToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob,File,Table,Queue -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
+          $containerSasToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
           $containerUri = "https://adftempaltedeploy.blob.core.windows.net/templates"
 
           if (-not $containerSasToken) {
@@ -89,13 +89,12 @@ jobs:
           echo "containerSasToken=$containerSasToken" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "containerUri=$containerUri"  | Out-File -FilePath $env:GITHUB_ENV -Append
 
-
-      # Step 8: Deploy ADF ARM Templates
+      # Step 7: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
-          template: "$containerUri/ArmTemplate_master.json$containerSasToken"
+          template: ${{ env.containerUri }}/ArmTemplate_master.json${{ env.containerSasToken }}
           parameters: |
             {
               "factoryName": {
@@ -110,8 +109,8 @@ jobs:
             }
           deploymentMode: Incremental
 
-      # Step 9: Run Post-deployment Script
+      # Step 8: Run Post-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
-          pwsh -command "./temp/PrePostDeploymentScript.ps1 -armTemplate '${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}' -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true"
+          ./temp/PrePostDeploymentScript.ps1 -armTemplate "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true
