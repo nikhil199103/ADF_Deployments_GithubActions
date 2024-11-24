@@ -95,7 +95,7 @@ jobs:
         with:
           resourceGroupName: test
           template: ${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}
-          parameters: >
+          parameters: |
             {
               "factoryName": {
                 "value": "adf-github-actions-test"
