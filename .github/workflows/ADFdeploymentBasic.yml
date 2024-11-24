@@ -60,7 +60,7 @@ jobs:
           echo "Uploading ARM templates to Azure Storage"
           az storage container create --name templates --account-name adftempaltedeploy --auth-mode login
           for file in ./adf-github-actions/linkedTemplates/*.json; do
-            az storage blob upload --account-name adftempaltedeploy --container-name templates --file "$file" --name "$(basename "$file")" --overwrite
+            az storage blob upload --account-name adftempaltedeploy --container-name templates --file "$file" --name "$(basename "$file")" --overwrite --auth-mode login
           done
 
       # Step 6: Generate SAS Token and Container URI
@@ -90,7 +90,13 @@ jobs:
           echo "containerSasToken=$containerSasToken" >> $GITHUB_ENV
           echo "containerUri=$containerUri"  >> $GITHUB_ENV
 
-      # Step 7: Deploy ADF ARM Templates
+      # Step 7: Debug Environment Variables
+      - name: Debug Environment Variables
+        run: |
+          echo "containerUri=${{ env.containerUri }}"
+          echo "containerSasToken=${{ env.containerSasToken }}"
+
+      # Step 8: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
@@ -111,7 +117,7 @@ jobs:
           deploymentMode: Incremental
           failOnStdErr: true
 
-      # Step 8: Run Post-deployment Script
+      # Step 9: Run Post-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
