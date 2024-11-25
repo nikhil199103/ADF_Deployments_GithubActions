@@ -186,12 +186,12 @@ jobs:
           failOnStdErr: true
 
       # Step 12: Run Post-deployment Script
-      #- name: Run Post-deployment Script
-      #  shell: pwsh
-      #  run: |
-      #    ./temp/PrePostDeploymentScript.ps1 `
-      #      -armTemplate "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" `
-      #      -ResourceGroupName test `
-      #      -DataFactoryName adf-github-actions-test `
-      #      -predeployment $false `
-      #      -deleteDeployment $true
+      - name: Run Post-deployment Script
+        shell: pwsh
+        run: |
+          ./temp/PrePostDeploymentScript.ps1 `
+            -armTemplate "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" `
+            -ResourceGroupName test `
+            -DataFactoryName adf-github-actions-test `
+            -predeployment $false `
+            -deleteDeployment $false
