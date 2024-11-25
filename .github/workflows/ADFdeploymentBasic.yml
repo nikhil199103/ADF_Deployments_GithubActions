@@ -164,7 +164,7 @@ jobs:
         shell: bash
 
 
-      # Step 11: Run Pre-deployment Script
+      # Step 10: Run Pre-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
@@ -172,10 +172,10 @@ jobs:
             -armTemplate "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" `
             -ResourceGroupName test `
             -DataFactoryName adf-github-actions-test `
-            -predeployment $false `
+            -predeployment $true `
             -deleteDeployment $false
 
-      # Step 10: Deploy ADF ARM Templates
+      # Step 11: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
@@ -185,7 +185,7 @@ jobs:
           deploymentMode: Incremental
           failOnStdErr: true
 
-      # Step 11: Run Post-deployment Script
+      # Step 12: Run Post-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
