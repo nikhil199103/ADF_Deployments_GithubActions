@@ -60,7 +60,7 @@ jobs:
           echo "Uploading ARM templates to Azure Storage"
           az storage container create --name templates --account-name adftempaltedeploy --auth-mode login
           for file in ./adf-github-actions/linkedTemplates/*.json; do
-            az storage blob upload --account-name adftempaltedeploy --container-name templates --file "$file" --name "$(basename "$file")" --overwrite --auth-mode login
+            az storage blob upload --account-name adftempaltedeploy --container-name templates --file "$file" --name "$(basename "$file")" --overwrite
           done
         shell: bash
 
