@@ -11,10 +11,6 @@ on:
         required: false
         default: 'false'
 
-permissions:
-  contents: read
-  actions: write  # Allows managing workflows and actions
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -72,11 +68,8 @@ jobs:
       - name: Generate SAS Token and Container URI
         id: generate_sas
         shell: pwsh
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           try {
-            # Generate SAS Token and Container URI
             $ctx = (Get-AzStorageAccount -ResourceGroupName test -AccountName adftempaltedeploy).Context
             $StartTime = Get-Date
             $EndTime = $StartTime.AddHours(1)
@@ -94,98 +87,59 @@ jobs:
 
             Write-Host "Generated SAS Token: $containerSasToken"
             Write-Host "Generated Container URI: $containerUri"
-            
 
-            # Define the repository name
-            $REPO = "$env:GITHUB_REPOSITORY"  # Automatically get the repository name
-            echo "Repository name: $REPO"
-
-            # Fetch the public key for the repository
-            $headers = @{ Authorization = "token $env:PAT_TOKEN" }
-            $publicKeyResponse = Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/actions/secrets/public-key" -Headers $headers -Method Get
-
-            $publicKey = $publicKeyResponse.key
-            $keyId = $publicKeyResponse.key_id
-
-            if (-not $publicKey -or -not $keyId) {
-              Write-Error "Failed to retrieve the public key from GitHub!"
-              exit 1
-            }
-
-            # Function to encrypt a secret using the public key
-            function Encrypt-Secret($secret, $publicKey) {
-              $publicKeyBytes = [Convert]::FromBase64String($publicKey)
-              $rsa = [System.Security.Cryptography.RSA]::Create()
-              $rsa.ImportSubjectPublicKeyInfo($publicKeyBytes, [ref]0)
-              $secretBytes = [System.Text.Encoding]::UTF8.GetBytes($secret)
-              $encryptedBytes = $rsa.Encrypt($secretBytes, [System.Security.Cryptography.RSAEncryptionPadding]::OaepSHA256)
-              return [System.Convert]::ToBase64String($encryptedBytes)
-            }
-
-            # Encrypt the SAS Token
-            $encryptedSasToken = Encrypt-Secret $containerSasToken $publicKey
-
-            # Store the encrypted SAS Token as a secret
-            $sasTokenBody = @{
-              encrypted_value = $encryptedSasToken
-              key_id = $keyId
-            } | ConvertTo-Json
-
-            Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/actions/secrets/containerSasToken" `
-              -Headers $headers -Method Put -ContentType "application/json" -Body $sasTokenBody
-
-            # Encrypt the Container URI
-            $encryptedContainerUri = Encrypt-Secret $containerUri $publicKey
-
-            # Store the encrypted Container URI as a secret
-            $containerUriBody = @{
-              encrypted_value = $encryptedContainerUri
-              key_id = $keyId
-            } | ConvertTo-Json
-
-            Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/actions/secrets/containerUri" `
-              -Headers $headers -Method Put -ContentType "application/json" -Body $containerUriBody
-
-            Write-Host "SAS Token and Container URI successfully stored in GitHub Secrets."
+            # Export variables to GitHub environment
+            Write-Host "containerSasToken=$containerSasToken" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "containerUri=$containerUri" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           } catch {
-            Write-Error "Error occurred during SAS Token and Container URI storage: $_"
+            Write-Error "Error occurred during SAS Token and Container URI generation: $_"
             exit 1
           }
 
-      # Step 7: Retrieve Secrets for Deployment
-      - name: Use Stored Secrets
+      # Step 7: Debug Environment Variables
+      - name: Debug Environment Variables
         run: |
-          echo "Pulling SAS Token and Container URI from GitHub Secrets..."
-          SAS_TOKEN="${{ secrets.containerSasToken }}"
-          CONTAINER_URI="${{ secrets.containerUri }}"
-
-          echo "Container URI: $CONTAINER_URI"
-          echo "Container SAS Token: $SAS_TOKEN"
+          echo "Container URI: ${{ env.containerUri }}"
+          echo "Container SAS Token: ${{ env.containerSasToken }}"
         shell: bash
 
-      # Step 8: Deploy ADF ARM Templates
+      # Step 8: Validate Environment Variables
+      - name: Validate Environment Variables
+        run: |
+          if [ -z "${{ env.containerUri }}" ]; then
+            echo "Error: containerUri is not set."
+            exit 1
+          fi
+
+          if [ -z "${{ env.containerSasToken }}" ]; then
+            echo "Error: containerSasToken is not set."
+            exit 1
+          fi
+        shell: bash
+
+      # Step 9: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
-          template: ${{ secrets.containerUri }}/ArmTemplate_master.json?${{ secrets.containerSasToken }}
+          template: ${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}
           parameters: |
             {
               "factoryName": {
                 "value": "adf-github-actions-test"
               },
               "containerUri": {
-                "value": "${{ secrets.containerUri }}"
+                "value": "${{ env.containerUri }}"
               },
               "containerSasToken": {
-                "value": "?${{ secrets.containerSasToken }}"
+                "value": "?${{ env.containerSasToken }}"
               }
             }
           deploymentMode: Incremental
           failOnStdErr: true
 
-      # Step 9: Run Post-deployment Script
+      # Step 10: Run Post-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
-          ./temp/PrePostDeploymentScript.ps1 -armTemplate "${{ secrets.containerUri }}/ArmTemplate_master.json?${{ secrets.containerSasToken }}" -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true
+          ./temp/PrePostDeploymentScript.ps1 -armTemplate "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}" -ResourceGroupName test -DataFactoryName adf-github-actions-test -predeployment $false -deleteDeployment $true
