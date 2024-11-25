@@ -134,7 +134,8 @@ function Get-SortedLinkedServices {
     $SortedList
 }
 
-$templateJson = Get-Content $armTemplate | ConvertFrom-Json
+#$templateJson = Get-Content $armTemplate | ConvertFrom-Json
+$templateJson = Get-TemplateJson -templatePath $armTemplate
 $resources = $templateJson.resources
 
 #Triggers 
