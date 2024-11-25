@@ -94,9 +94,11 @@ jobs:
 
             Write-Host "Generated SAS Token: $containerSasToken"
             Write-Host "Generated Container URI: $containerUri"
+            
 
             # Define the repository name
             $REPO = "$env:GITHUB_REPOSITORY"  # Automatically get the repository name
+            echo "Repository name: $REPO"
 
             # Fetch the public key for the repository
             $headers = @{ Authorization = "token $env:PAT_TOKEN" }
