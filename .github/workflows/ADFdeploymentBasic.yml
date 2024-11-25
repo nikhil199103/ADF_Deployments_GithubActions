@@ -62,6 +62,7 @@ jobs:
           for file in ./adf-github-actions/linkedTemplates/*.json; do
             az storage blob upload --account-name adftempaltedeploy --container-name templates --file "$file" --name "$(basename "$file")" --overwrite --auth-mode login
           done
+        shell: bash
 
       # Step 6: Generate SAS Token and Container URI
       - name: Generate SAS Token and Container URI
@@ -95,8 +96,23 @@ jobs:
         run: |
           echo "containerUri=${{ env.containerUri }}"
           echo "containerSasToken=${{ env.containerSasToken }}"
+        shell: bash
 
-      # Step 8: Deploy ADF ARM Templates
+      # Step 8: Validate Environment Variables
+      - name: Validate Environment Variables
+        run: |
+          if [ -z "${{ env.containerUri }}" ]; then
+            echo "Error: containerUri is not set."
+            exit 1
+          fi
+
+          if [ -z "${{ env.containerSasToken }}" ]; then
+            echo "Error: containerSasToken is not set."
+            exit 1
+          fi
+        shell: bash
+
+      # Step 9: Deploy ADF ARM Templates
       - name: Deploy ADF ARM Templates
         uses: Azure/arm-deploy@v1
         with:
@@ -117,7 +133,7 @@ jobs:
           deploymentMode: Incremental
           failOnStdErr: true
 
-      # Step 9: Run Post-deployment Script
+      # Step 10: Run Post-deployment Script
       - name: Run Post-deployment Script
         shell: pwsh
         run: |
