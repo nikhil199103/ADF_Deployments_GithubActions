@@ -77,7 +77,15 @@ jobs:
             Write-Host "Start Time: $StartTime"
             Write-Host "End Time: $EndTime"
 
-            $containerSasToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
+            $containerSasToken = New-AzStorageAccountSASToken `
+              -Context $ctx `
+              -Service Blob `
+              -ResourceType Service,Container,Object `
+              -Permission "racwdlup" `
+              -Protocol "HttpsOnly" `
+              -StartTime $StartTime `
+              -ExpiryTime $EndTime
+
             $containerUri = "https://adftempaltedeploy.blob.core.windows.net/templates"
 
             if (-not $containerSasToken -or -not $containerUri) {
@@ -88,18 +96,13 @@ jobs:
             Write-Host "Generated SAS Token: $containerSasToken"
             Write-Host "Generated Container URI: $containerUri"
 
-            # Export variables to GitHub environment using the <<EOF syntax
-            Add-Content -Path $env:GITHUB_ENV -Value @"
-containerSasToken<<EOF
-$containerSasToken
-EOF
-"@
+            # Escape special characters
+            $escapedSasToken = $containerSasToken -replace '%','%25' -replace '`n','%0A' -replace '`r','%0D' -replace ' ','%20' -replace '&','%26'
+            $escapedContainerUri = $containerUri -replace '%','%25' -replace '`n','%0A' -replace '`r','%0D' -replace ' ','%20' -replace '&','%26'
 
-            Add-Content -Path $env:GITHUB_ENV -Value @"
-containerUri<<EOF
-$containerUri
-EOF
-"@
+            # Export variables to GitHub environment
+            Add-Content -Path $env:GITHUB_ENV -Value "containerSasToken=$escapedSasToken"
+            Add-Content -Path $env:GITHUB_ENV -Value "containerUri=$escapedContainerUri"
           } catch {
             Write-Error "Error occurred during SAS Token and Container URI generation: $_"
             exit 1
@@ -109,7 +112,8 @@ EOF
       - name: Debug Environment Variables
         run: |
           echo "Container URI: ${{ env.containerUri }}"
-          echo "Container SAS Token: ${{ env.containerSasToken }}"
+          # Optionally, mask the SAS Token in logs
+          echo "Container SAS Token: [MASKED]"
         shell: bash
 
       # Step 8: Validate Environment Variables
@@ -131,7 +135,7 @@ EOF
         uses: Azure/arm-deploy@v1
         with:
           resourceGroupName: test
-          template: ${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}
+          template: "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}"
           parameters: |
             {
               "factoryName": {
