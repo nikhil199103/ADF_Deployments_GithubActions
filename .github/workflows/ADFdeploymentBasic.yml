@@ -93,28 +93,44 @@ jobs:
             Write-Host "Generated Container URI: $containerUri"
 
             # Fetch the public key for the repository
-            REPO="owner/repo" # Replace with your repository name
-            PUBLIC_KEY_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-              https://api.github.com/repos/$REPO/actions/secrets/public-key)
+            $REPO = "owner/repo"  # Replace with your repository name
+            $PUBLIC_KEY_RESPONSE = Invoke-RestMethod -Headers @{ Authorization = "token $env:GITHUB_TOKEN" } `
+              -Uri "https://api.github.com/repos/$REPO/actions/secrets/public-key" `
+              -Method Get
 
-            PUBLIC_KEY=$(echo $PUBLIC_KEY_RESPONSE | jq -r '.key')
-            KEY_ID=$(echo $PUBLIC_KEY_RESPONSE | jq -r '.key_id')
+            $PUBLIC_KEY = $PUBLIC_KEY_RESPONSE.key
+            $KEY_ID = $PUBLIC_KEY_RESPONSE.key_id
+
+            if (-not $PUBLIC_KEY -or -not $KEY_ID) {
+              Write-Error "Failed to retrieve the public key from GitHub!"
+              exit 1
+            }
 
             # Encrypt SAS Token
-            SAS_TOKEN_ENCRYPTED=$(echo -n "$containerSasToken" | openssl rsautl -encrypt -pubin -inkey <(echo "$PUBLIC_KEY") | base64)
-            curl -X PUT -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"encrypted_value\":\"$SAS_TOKEN_ENCRYPTED\",\"key_id\":\"$KEY_ID\"}" \
-              https://api.github.com/repos/$REPO/actions/secrets/containerSasToken
+            $SAS_TOKEN_ENCRYPTED = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($containerSasToken)) |
+              openssl rsautl -encrypt -pubin -inkey ([System.IO.MemoryStream]::New([System.Text.Encoding]::UTF8.GetBytes($PUBLIC_KEY)))
+
+            Invoke-RestMethod -Headers @{ Authorization = "token $env:GITHUB_TOKEN" } `
+              -Uri "https://api.github.com/repos/$REPO/actions/secrets/containerSasToken" `
+              -Method Put `
+              -Body @{
+                  encrypted_value = $SAS_TOKEN_ENCRYPTED
+                  key_id = $KEY_ID
+                } | ConvertTo-Json -Depth 2
 
             # Encrypt Container URI
-            CONTAINER_URI_ENCRYPTED=$(echo -n "$containerUri" | openssl rsautl -encrypt -pubin -inkey <(echo "$PUBLIC_KEY") | base64)
-            curl -X PUT -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"encrypted_value\":\"$CONTAINER_URI_ENCRYPTED\",\"key_id\":\"$KEY_ID\"}" \
-              https://api.github.com/repos/$REPO/actions/secrets/containerUri
+            $CONTAINER_URI_ENCRYPTED = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($containerUri)) |
+              openssl rsautl -encrypt -pubin -inkey ([System.IO.MemoryStream]::New([System.Text.Encoding]::UTF8.GetBytes($PUBLIC_KEY)))
 
-            echo "SAS Token and Container URI stored in GitHub Secrets."
+            Invoke-RestMethod -Headers @{ Authorization = "token $env:GITHUB_TOKEN" } `
+              -Uri "https://api.github.com/repos/$REPO/actions/secrets/containerUri" `
+              -Method Put `
+              -Body @{
+                  encrypted_value = $CONTAINER_URI_ENCRYPTED
+                  key_id = $KEY_ID
+                } | ConvertTo-Json -Depth 2
+
+            Write-Host "SAS Token and Container URI stored in GitHub Secrets."
           } catch {
             Write-Error "Error occurred during SAS Token and Container URI storage: $_"
             exit 1
