@@ -194,4 +194,4 @@ jobs:
             -ResourceGroupName test `
             -DataFactoryName adf-github-actions-test `
             -predeployment $false `
-            -deleteDeployment $true
+            -deleteDeployment $false
