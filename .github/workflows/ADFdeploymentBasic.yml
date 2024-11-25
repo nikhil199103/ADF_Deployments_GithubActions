@@ -84,6 +84,11 @@ jobs:
             exit 1
           }
 
+          if (-not $containerUri) {
+            Write-Error "Failed to construct Container URI!"
+            exit 1
+          }
+
           Write-Host "Generated SAS Token: $containerSasToken"
           Write-Host "Container URI: $containerUri"
 
@@ -94,8 +99,8 @@ jobs:
       # Step 7: Debug Environment Variables
       - name: Debug Environment Variables
         run: |
-          echo "containerUri=${{ env.containerUri }}"
-          echo "containerSasToken=${{ env.containerSasToken }}"
+          echo "Container URI: ${{ env.containerUri }}"
+          echo "Container SAS Token: ${{ env.containerSasToken }}"
         shell: bash
 
       # Step 8: Validate Environment Variables
