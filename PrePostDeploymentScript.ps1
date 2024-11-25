@@ -7,6 +7,39 @@ param
     [parameter(Mandatory = $false)] [bool] $deleteDeployment=$false
 )
 
+function Get-TemplateJson {
+    param (
+        [string]$templatePath
+    )
+
+    if ($templatePath -match '^https?:\/\/') {
+        # If the template path is a URL
+        try {
+            Write-Host "Fetching template from URL: $templatePath"
+            $response = Invoke-WebRequest -Uri $templatePath -UseBasicParsing
+            $templateContent = $response.Content
+        } catch {
+            Write-Error "Failed to fetch template from URL: $_"
+            exit 1
+        }
+    } elseif (Test-Path $templatePath) {
+        # If the template path is a local file
+        Write-Host "Reading template from local file: $templatePath"
+        $templateContent = Get-Content -Path $templatePath -Raw
+    } else {
+        Write-Error "Template path is invalid: $templatePath"
+        exit 1
+    }
+
+    try {
+        $templateJson = $templateContent | ConvertFrom-Json
+        return $templateJson
+    } catch {
+        Write-Error "Failed to parse template JSON: $_"
+        exit 1
+    }
+}
+
 function getPipelineDependencies {
     param([System.Object] $activity)
     if ($activity.Pipeline) {
