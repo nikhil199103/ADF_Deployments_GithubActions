@@ -119,11 +119,34 @@ jobs:
           echo "containerUri=$containerUri" >> $GITHUB_ENV
         shell: bash
 
+      # Step N: Create ARM Parameters File
+      - name: Create ARM Parameters File
+        run: |
+          echo '{
+            "factoryName": {
+              "value": "adf-github-actions-test"
+            },
+            "containerUri": {
+              "value": "'"${{ env.containerUri }}"'"
+            },
+            "containerSasToken": {
+              "value": "?'"${{ env.containerSasToken }}"'"
+            }
+          }' > parameters.json
+        shell: bash
+
+      # Optional: Debug Parameters File
+      - name: Debug Parameters File
+        run: |
+          echo "Parameters file content (excluding sensitive data):"
+          grep -v "containerSasToken" parameters.json
+        shell: bash
+
       # Step 8: Debug Environment Variables
       - name: Debug Environment Variables
         run: |
           echo "Container URI: ${{ env.containerUri }}"
-          echo "Container SAS Token: [MASKED]"
+          echo "Container SAS Token is set and decoded."
         shell: bash
 
       # Step 9: Validate Environment Variables
@@ -146,18 +169,7 @@ jobs:
         with:
           resourceGroupName: test
           template: "${{ env.containerUri }}/ArmTemplate_master.json?${{ env.containerSasToken }}"
-          parameters: |
-            {
-              "factoryName": {
-                "value": "adf-github-actions-test"
-              },
-              "containerUri": {
-                "value": "${{ env.containerUri }}"
-              },
-              "containerSasToken": {
-                "value": "?${{ env.containerSasToken }}"
-              }
-            }
+          parameters: '@parameters.json'
           deploymentMode: Incremental
           failOnStdErr: true
 
