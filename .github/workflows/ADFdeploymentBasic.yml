@@ -88,9 +88,18 @@ jobs:
             Write-Host "Generated SAS Token: $containerSasToken"
             Write-Host "Generated Container URI: $containerUri"
 
-            # Export variables to GitHub environment
-            Write-Host "containerSasToken=$containerSasToken" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "containerUri=$containerUri" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            # Export variables to GitHub environment using the <<EOF syntax
+            Add-Content -Path $env:GITHUB_ENV -Value @"
+containerSasToken<<EOF
+$containerSasToken
+EOF
+"@
+
+            Add-Content -Path $env:GITHUB_ENV -Value @"
+containerUri<<EOF
+$containerUri
+EOF
+"@
           } catch {
             Write-Error "Error occurred during SAS Token and Container URI generation: $_"
             exit 1
