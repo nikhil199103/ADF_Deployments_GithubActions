@@ -69,32 +69,37 @@ jobs:
         id: generate_sas
         shell: pwsh
         run: |
-          $ctx = (Get-AzStorageAccount -ResourceGroupName test -AccountName adftempaltedeploy).Context
-          $StartTime = Get-Date
-          $EndTime = $StartTime.AddHours(1)
+          try {
+            $ctx = (Get-AzStorageAccount -ResourceGroupName test -AccountName adftempaltedeploy).Context
+            $StartTime = Get-Date
+            $EndTime = $StartTime.AddHours(1)
 
-          Write-Host "Start Time: $StartTime"
-          Write-Host "End Time: $EndTime"
+            Write-Host "Start Time: $StartTime"
+            Write-Host "End Time: $EndTime"
 
-          $containerSasToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
-          $containerUri = "https://adftempaltedeploy.blob.core.windows.net/templates"
+            $containerSasToken = New-AzStorageAccountSASToken -Context $ctx -Service Blob -ResourceType Service,Container,Object -Permission "racwdlup" -Protocol "HttpsOnly" -StartTime $StartTime -ExpiryTime $EndTime
+            $containerUri = "https://adftempaltedeploy.blob.core.windows.net/templates"
 
-          if (-not $containerSasToken) {
-            Write-Error "Failed to generate SAS Token!"
+            if (-not $containerSasToken) {
+              Write-Error "Failed to generate SAS Token!"
+              exit 1
+            }
+
+            if (-not $containerUri) {
+              Write-Error "Failed to construct Container URI!"
+              exit 1
+            }
+
+            Write-Host "Generated SAS Token: $containerSasToken"
+            Write-Host "Container URI: $containerUri"
+
+            # Export the SAS Token and Container URI to GitHub Environment Variables
+            echo "containerSasToken=$containerSasToken" >> $GITHUB_ENV
+            echo "containerUri=$containerUri"  >> $GITHUB_ENV
+          } catch {
+            Write-Error "Error occurred during SAS Token generation: $_"
             exit 1
           }
-
-          if (-not $containerUri) {
-            Write-Error "Failed to construct Container URI!"
-            exit 1
-          }
-
-          Write-Host "Generated SAS Token: $containerSasToken"
-          Write-Host "Container URI: $containerUri"
-
-          # Export the SAS Token and Container URI to GitHub Environment Variables
-          echo "containerSasToken=$containerSasToken" >> $GITHUB_ENV
-          echo "containerUri=$containerUri"  >> $GITHUB_ENV
 
       # Step 7: Debug Environment Variables
       - name: Debug Environment Variables
