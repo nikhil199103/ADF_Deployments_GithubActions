@@ -3,42 +3,9 @@ param
     [parameter(Mandatory = $false)] [String] $armTemplate,
     [parameter(Mandatory = $false)] [String] $ResourceGroupName,
     [parameter(Mandatory = $false)] [String] $DataFactoryName,
-    [parameter(Mandatory = $false)] [bool] $predeployment=$true,
-    [parameter(Mandatory = $false)] [bool] $deleteDeployment=$false
+    [parameter(Mandatory = $false)] [Bool] $predeployment=$true,
+    [parameter(Mandatory = $false)] [Bool] $deleteDeployment=$false
 )
-
-function Get-TemplateJson {
-    param (
-        [string]$templatePath
-    )
-
-    if ($templatePath -match '^https?:\/\/') {
-        # If the template path is a URL
-        try {
-            Write-Host "Fetching template from URL: $templatePath"
-            $response = Invoke-WebRequest -Uri $templatePath -UseBasicParsing
-            $templateContent = $response.Content
-        } catch {
-            Write-Error "Failed to fetch template from URL: $_"
-            exit 1
-        }
-    } elseif (Test-Path $templatePath) {
-        # If the template path is a local file
-        Write-Host "Reading template from local file: $templatePath"
-        $templateContent = Get-Content -Path $templatePath -Raw
-    } else {
-        Write-Error "Template path is invalid: $templatePath"
-        exit 1
-    }
-
-    try {
-        $templateJson = $templateContent | ConvertFrom-Json
-        return $templateJson
-    } catch {
-        Write-Error "Failed to parse template JSON: $_"
-        exit 1
-    }
-}
 
 function getPipelineDependencies {
     param([System.Object] $activity)
@@ -70,10 +37,10 @@ function pipelineSortUtil {
     [Hashtable] $pipelineNameResourceDict,
     [Hashtable] $visited,
     [System.Collections.Stack] $sortedList)
-    if ($visited[$pipeline.Name] -eq $True) {
+    if ($visited[$pipeline.Name] -eq $true) {
         return;
     }
-    $visited[$pipeline.Name] = $True;
+    $visited[$pipeline.Name] = $true;
     $pipeline.Activities | ForEach-Object{ getPipelineDependencies -activity $_ -pipelineNameResourceDict $pipelineNameResourceDict}  | ForEach-Object{
         pipelineSortUtil -pipeline $pipelineNameResourceDict[$_] -pipelineNameResourceDict $pipelineNameResourceDict -visited $visited -sortedList $sortedList
     }
@@ -105,10 +72,10 @@ function triggerSortUtil {
     [Hashtable] $triggerNameResourceDict,
     [Hashtable] $visited,
     [System.Collections.Stack] $sortedList)
-    if ($visited[$trigger.Name] -eq $True) {
+    if ($visited[$trigger.Name] -eq $true) {
         return;
     }
-    $visited[$trigger.Name] = $True;
+    $visited[$trigger.Name] = $true;
     if ($trigger.Properties.DependsOn) {
         $trigger.Properties.DependsOn | Where-Object {$_ -and $_.ReferenceTrigger} | ForEach-Object{
             triggerSortUtil -trigger $triggerNameResourceDict[$_.ReferenceTrigger.ReferenceName] -triggerNameResourceDict $triggerNameResourceDict -visited $visited -sortedList $sortedList
@@ -167,8 +134,7 @@ function Get-SortedLinkedServices {
     $SortedList
 }
 
-#$templateJson = Get-Content $armTemplate | ConvertFrom-Json
-$templateJson = Get-TemplateJson -templatePath $armTemplate
+$templateJson = Get-Content $armTemplate | ConvertFrom-Json
 $resources = $templateJson.resources
 
 #Triggers 
@@ -197,22 +163,11 @@ $triggersToStart = $triggersInTemplate | Where-Object { $_.properties.runtimeSta
     }
 }
 
-#If triggers are stopped in armtemplate
-#then checking deploying environment's trigger current state
-# Write-Host "Getting current env triggers"
-# $ADF_Triggers = Get-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName
-# $activeNowTriggerNames = $ADF_Triggers | Where-Object { $_.properties.runtimeState -eq "Started" -and ($_.properties.pipelines.Count -gt 0 -or $_.properties.pipeline.pipelineReference -ne $null)} | ForEach-Object { 
-#     New-Object PSObject -Property @{
-#         Name = $_.name
-#         TriggerType = $_.Properties.ToString().Substring(46, $_.Properties.ToString().Length-46)
-#     }
-# }
-
-if ($predeployment -eq $True) {
+if ($predeployment -eq $true) {
     #Stop all triggers
     Write-Host "Stopping deployed triggers`n"
     $triggersToStop | ForEach-Object {
-        if ($_.TriggerType -eq "BlobEventsTrigger") {
+        if ($_.TriggerType -eq "BlobEventsTrigger" -or $_.TriggerType -eq "CustomEventsTrigger") {
             Write-Host "Unsubscribing" $_.Name "from events"
             $status = Remove-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
             while ($status.Status -ne "Disabled"){
@@ -224,8 +179,7 @@ if ($predeployment -eq $True) {
         Stop-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
     }
 }
-else 
-{
+else {
     #Deleted resources
     #pipelines
     Write-Host "Getting pipelines"
@@ -263,7 +217,7 @@ else
         Write-Host "Deleting trigger "  $_.Name
         $trig = Get-AzDataFactoryV2Trigger -name $_.Name -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName
         if ($trig.RuntimeState -eq "Started") {
-            if ($_.TriggerType -eq "BlobEventsTrigger") {
+            if ($_.TriggerType -eq "BlobEventsTrigger" -or $_.TriggerType -eq "CustomEventsTrigger") {
                 Write-Host "Unsubscribing trigger" $_.Name "from events"
                 $status = Remove-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
                 while ($status.Status -ne "Disabled"){
@@ -301,7 +255,7 @@ else
         Remove-AzDataFactoryV2IntegrationRuntime -Name $_.Name -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Force 
     }
 
-    if ($deleteDeployment -eq $True) {
+    if ($deleteDeployment -eq $true) {
         Write-Host "Deleting ARM deployment ... under resource group: " $ResourceGroupName
         $deployments = Get-AzResourceGroupDeployment -ResourceGroupName $ResourceGroupName
         $deploymentsToConsider = $deployments | Where { $_.DeploymentName -like "ArmTemplate_master*" -or $_.DeploymentName -like "ArmTemplateForFactory*" } | Sort-Object -Property Timestamp -Descending
@@ -322,7 +276,7 @@ else
     #Start active triggers - after cleanup efforts
     Write-Host "Starting active triggers"
     $triggersToStart | ForEach-Object { 
-        if ($_.TriggerType -eq "BlobEventsTrigger") {
+        if ($_.TriggerType -eq "BlobEventsTrigger" -or $_.TriggerType -eq "CustomEventsTrigger") {
             Write-Host "Subscribing" $_.Name "to events"
             $status = Add-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
             while ($status.Status -ne "Enabled"){
@@ -333,22 +287,4 @@ else
         Write-Host "Starting trigger" $_.Name
         Start-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
     }
-
-    #Start active triggers - based on current deploying env trigger state
-    # If($activeNowTriggerNames -ne $null)
-    # {
-    #     Write-Host "Starting current environment active triggers"
-    #     $activeNowTriggerNames | ForEach-Object { 
-    #         if ($_.TriggerType -eq "BlobEventsTrigger") {
-    #             Write-Host "Subscribing" $_.Name "to events"
-    #             $status = Add-AzDataFactoryV2TriggerSubscription -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
-    #             while ($status.Status -ne "Enabled"){
-    #                 Start-Sleep -s 15
-    #                 $status = Get-AzDataFactoryV2TriggerSubscriptionStatus -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name
-    #             }
-    #         }
-    #         Write-Host "Starting trigger" $_.Name
-    #         Start-AzDataFactoryV2Trigger -ResourceGroupName $ResourceGroupName -DataFactoryName $DataFactoryName -Name $_.Name -Force
-    #     }
-    # }
 }
