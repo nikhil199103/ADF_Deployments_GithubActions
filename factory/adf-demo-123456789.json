@@ -1,0 +1,9 @@
+{
+	"name": "adf-demo-123456789",
+	"location": "southcentralus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "414319f7-75e7-49f5-b64b-b427d05cbfde",
+		"tenantId": "42f91328-1147-483c-99ed-e33d376b3ce2"
+	}
+}
